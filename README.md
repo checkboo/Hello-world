@@ -9,8 +9,10 @@ the three hardware buttons. One `.txt` file per day on the SD card.
 - M5Stack Fire (ESP32-D0WDQ6, 16 MB flash, 4 MB PSRAM, 320×240 ILI9341 TFT,
   buttons A/B/C, microSD slot)
 - A microSD card (FAT32, ≤ 32 GB)
-- A BLE keyboard (e.g. Apple Magic Keyboard, Logitech K380 in BLE mode,
-  Keychron K-series in BLE mode)
+- One of:
+  - A **BLE keyboard** (e.g. Apple Magic Keyboard, Logitech K380 in BLE mode,
+    Keychron K-series in BLE mode), or
+  - An **M5Stack CardKB** unit plugged into the GROVE A (red) port
 
 ## Build
 
@@ -63,6 +65,14 @@ Acts like a normal text editor — printable characters, Backspace, Delete,
 Enter, Tab, arrow keys, Home/End. `Ctrl-S` forces a save. `Esc` from the
 editor opens the entry list; from the list or viewer it goes back.
 
+### M5Stack CardKB
+
+Plug the CardKB into the red (GROVE A) port — it's auto-detected at boot
+on I2C address `0x5F`. Both the CardKB and a paired BLE keyboard can be used
+at the same time. `Sym` + `S` / `A` / `E` map to Ctrl-S / Ctrl-A / Ctrl-E
+(save / line-home / line-end). Arrow keys, Backspace, Enter, Tab and Esc all
+work.
+
 ### Save behaviour
 
 The buffer auto-saves 2 s after the last keystroke, on Button A, and on any
@@ -83,7 +93,9 @@ src/
   TimeSync.{h,cpp}   — WiFi connect, NTP, NVS-cached epoch, today() / now() strings.
   WifiCreds.{h,cpp}  — Parser for /wifi.txt.
   BTKeyboard.{h,cpp} — BLE HID host: stack init, scan, bond/reconnect, report parsing.
-  hid_keymap.{h,cpp} — HID Usage ID → ASCII (US layout) + named control keys.
+  CardKB.{h,cpp}     — M5Stack CardKB I2C poller (auto-detected at boot).
+  Input.h            — Canonical InputKey struct + KEY_* control-key constants.
+  hid_keymap.{h,cpp} — HID Usage ID → InputKey code (US layout).
   Ui.{h,cpp}         — Status bar, splash, toast, error, body region constants.
   Buttons.{h,cpp}    — Debounced edge detection wrapping M5.BtnA/B/C.
   Config.h           — Compile-time constants (autosave interval, paths, NVS keys, colors).

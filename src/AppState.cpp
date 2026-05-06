@@ -2,6 +2,7 @@
 
 #include <M5Stack.h>
 
+#include "CardKB.h"
 #include "Config.h"
 #include "Storage.h"
 #include "TimeSync.h"
@@ -15,9 +16,13 @@ App* App::self_ = nullptr;
 
 void App::btKeyTrampoline(const KeyEvent& e) {
   if (!self_ || !self_->keyQ_) return;
-  // BT callback runs in the HIDH event task — push to queue, don't touch the LCD.
-  KeyEvent ev = e;
-  xQueueSend(self_->keyQ_, &ev, 0);
+  // BT callback runs in the HIDH event task — translate to canonical InputKey
+  // here so the editor doesn't have to know about HID, and push to the queue.
+  InputKey ik;
+  ik.code = hidUsageToKey(e.usage, e.modifiers);
+  ik.ctrl = isCtrl(e.modifiers);
+  ik.down = e.down;
+  xQueueSend(self_->keyQ_, &ik, 0);
 }
 
 void App::begin() {
@@ -27,7 +32,8 @@ void App::begin() {
   Ui::begin();
   buttons_.captureBootState();
 
-  keyQ_ = xQueueCreate(64, sizeof(KeyEvent));
+  keyQ_ = xQueueCreate(64, sizeof(InputKey));
+  CardKB::begin();  // probe the GROVE port; OK if not present.
 
   Ui::splash("Journal", "booting...");
   delay(300);
@@ -196,11 +202,10 @@ void App::onButton(const ButtonEvent& e) {
   }
 }
 
-void App::onKey(const KeyEvent& e) {
+void App::onKey(const InputKey& e) {
   hadKeyboard_ = true;
   if (state_ == State::Editor) {
-    int kk = hidUsageToKey(e.usage, e.modifiers);
-    if (e.down && kk == KEY_ESC) {
+    if (e.down && e.code == KEY_ESC) {
       editor_.saveNow();
       enter(State::EntryList);
       return;
@@ -211,19 +216,17 @@ void App::onKey(const KeyEvent& e) {
       drawStatus();
     }
   } else if (state_ == State::EntryList && e.down) {
-    int kk = hidUsageToKey(e.usage, e.modifiers);
-    if (kk == KEY_UP)        { list_.moveUp();   list_.render(); }
-    else if (kk == KEY_DOWN) { list_.moveDown(); list_.render(); }
-    else if (kk == KEY_ENTER && !list_.empty()) {
+    if (e.code == KEY_UP)        { list_.moveUp();   list_.render(); }
+    else if (e.code == KEY_DOWN) { list_.moveDown(); list_.render(); }
+    else if (e.code == KEY_ENTER && !list_.empty()) {
       if (viewer_.open(list_.selectedPath().c_str())) enter(State::Viewer);
-    } else if (kk == KEY_ESC) {
+    } else if (e.code == KEY_ESC) {
       enter(State::Editor);
     }
   } else if (state_ == State::Viewer && e.down) {
-    int kk = hidUsageToKey(e.usage, e.modifiers);
-    if (kk == KEY_UP || kk == KEY_PAGEUP)         { viewer_.scrollUp();   viewer_.render(); }
-    else if (kk == KEY_DOWN || kk == KEY_PAGEDOWN){ viewer_.scrollDown(); viewer_.render(); }
-    else if (kk == KEY_ESC || kk == KEY_BACKSPACE){ enter(State::EntryList); }
+    if (e.code == KEY_UP || e.code == KEY_PAGEUP)         { viewer_.scrollUp();   viewer_.render(); }
+    else if (e.code == KEY_DOWN || e.code == KEY_PAGEDOWN){ viewer_.scrollDown(); viewer_.render(); }
+    else if (e.code == KEY_ESC || e.code == KEY_BACKSPACE){ enter(State::EntryList); }
   }
 }
 
@@ -250,8 +253,11 @@ void App::loop() {
   ButtonEvent be;
   while (buttons_.poll(be)) onButton(be);
 
-  KeyEvent ke;
-  while (keyQ_ && xQueueReceive(keyQ_, &ke, 0) == pdTRUE) onKey(ke);
+  InputKey ckb;
+  if (CardKB::poll(ckb) && keyQ_) xQueueSend(keyQ_, &ckb, 0);
+
+  InputKey ik;
+  while (keyQ_ && xQueueReceive(keyQ_, &ik, 0) == pdTRUE) onKey(ik);
 
   if (state_ == State::Editor) {
     bool wasDirty = editor_.dirty();

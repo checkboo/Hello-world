@@ -5,7 +5,6 @@
 #include "Config.h"
 #include "Storage.h"
 #include "Ui.h"
-#include "hid_keymap.h"
 
 namespace journal {
 
@@ -121,20 +120,18 @@ void Editor::ensureCursorVisible() {
   else if (cl >= scrollLine_ + visible) scrollLine_ = cl - visible + 1;
 }
 
-void Editor::onKey(const KeyEvent& k) {
+void Editor::onKey(const InputKey& k) {
   if (!k.down) return;
   lastKeyMs_ = millis();
-  int kk = hidUsageToKey(k.usage, k.modifiers);
 
-  if (isCtrl(k.modifiers)) {
-    // Ctrl-S = save now. Ctrl-A = home, Ctrl-E = end. Ignore other Ctrl combos.
-    if (kk == 's' || kk == 'S') { saveNow(); return; }
-    if (kk == 'a' || kk == 'A') { moveHome(); ensureCursorVisible(); return; }
-    if (kk == 'e' || kk == 'E') { moveEnd();  ensureCursorVisible(); return; }
+  if (k.ctrl) {
+    if (k.code == 's' || k.code == 'S') { saveNow(); return; }
+    if (k.code == 'a' || k.code == 'A') { moveHome(); ensureCursorVisible(); return; }
+    if (k.code == 'e' || k.code == 'E') { moveEnd();  ensureCursorVisible(); return; }
     return;
   }
 
-  switch (kk) {
+  switch (k.code) {
     case KEY_NONE:                                    return;
     case KEY_BACKSPACE: backspace();                  break;
     case KEY_DELETE:    delForward();                 break;
@@ -150,7 +147,7 @@ void Editor::onKey(const KeyEvent& k) {
     case KEY_PAGEUP:
     case KEY_PAGEDOWN:                                return;  // unimplemented
     default:
-      if (kk >= 0x20 && kk <= 0x7E) insertChar((char)kk);
+      if (k.code >= 0x20 && k.code <= 0x7E) insertChar((char)k.code);
       break;
   }
   ensureCursorVisible();

@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "Input.h"
+
 namespace journal {
 
 // HID keyboard modifier bits (USB HID spec).
@@ -17,25 +19,8 @@ constexpr uint8_t HID_MOD_RGUI   = 0x80;
 constexpr bool isShift(uint8_t m) { return m & (HID_MOD_LSHIFT | HID_MOD_RSHIFT); }
 constexpr bool isCtrl (uint8_t m) { return m & (HID_MOD_LCTRL  | HID_MOD_RCTRL ); }
 
-// Special key codes returned by hidUsageToKey() above the printable ASCII range.
-enum : int {
-  KEY_NONE      = 0,
-  KEY_BACKSPACE = -1,
-  KEY_ENTER     = -2,
-  KEY_TAB       = -3,
-  KEY_ESC       = -4,
-  KEY_LEFT      = -5,
-  KEY_RIGHT     = -6,
-  KEY_UP        = -7,
-  KEY_DOWN      = -8,
-  KEY_HOME      = -9,
-  KEY_END       = -10,
-  KEY_PAGEUP    = -11,
-  KEY_PAGEDOWN  = -12,
-  KEY_DELETE    = -13,
-};
-
-// US layout. Returns positive for printable ASCII, negative for named keys, 0 if unmapped.
+// US layout. Returns positive for printable ASCII, negative for KEY_* named
+// keys (defined in Input.h), or KEY_NONE if unmapped.
 int hidUsageToKey(uint8_t usage, uint8_t modifiers);
 
 }  // namespace journal

@@ -9,6 +9,7 @@
 #include "Buttons.h"
 #include "Editor.h"
 #include "EntryList.h"
+#include "Input.h"
 #include "Viewer.h"
 
 namespace journal {
@@ -43,7 +44,7 @@ class App {
 
   void enter(State s);
   void onButton(const ButtonEvent& e);
-  void onKey(const KeyEvent& e);
+  void onKey(const InputKey& e);
   void drawStatus(bool force = false);
 
   void doBoot();

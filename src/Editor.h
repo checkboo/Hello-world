@@ -4,14 +4,14 @@
 
 #include <vector>
 
-#include "BTKeyboard.h"
+#include "Input.h"
 
 namespace journal {
 
 class Editor {
  public:
   void open(const char* path, const String& initialBody);
-  void onKey(const KeyEvent& k);
+  void onKey(const InputKey& k);
   void tick();           // call from loop(); handles autosave
   void render();         // full repaint of body region
   bool dirty() const { return dirty_; }
