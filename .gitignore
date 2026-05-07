@@ -1,0 +1,11 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+.cache/
+*.o
+*.elf
+*.bin
+*.map
+sdkconfig
+sdkconfig.old
